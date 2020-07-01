@@ -1,0 +1,240 @@
+# Edit this file on: https://eeyo.io/iro/
+
+name                   = miscript
+file_extensions     [] = ms;
+textmate_compatible    = true
+
+__IDENTIFIER \= [_A-Za-z][_A-Za-z0-9]*
+
+styles [] {
+   .comments : style {
+      color                = grey
+      textmate_scope       = comment.line.double-slash
+   }
+
+   .identifier : style {
+      color                = yellow
+      textmate_scope       = variable
+   }
+
+   .keyword  : style {
+      color                = cyan
+      textmate_scope       = keyword
+   }
+
+   .language_keyword  : style {
+      color                = cyan
+      textmate_scope       = constant.language
+   }
+
+   .numeric : style {
+      color                = gold
+      textmate_scope       = constant.numeric
+   }
+
+   .string : style {
+      color                = brown
+      textmate_scope       = string
+   }
+
+   .string_escape : style {
+      color                = yellow
+      textmate_scope       = constant.character.escape
+   }
+
+   .string_template_begin : style {
+      color                = grey
+      textmate_scope       = punctuation.definition.template-expression.begin
+   }
+
+   .string_template_end : style {
+      color                = grey
+      textmate_scope       = punctuation.definition.template-expression.end
+   }
+   
+   .operator : style {
+      color                = green
+      textmate_scope       = keyword.operator
+   }
+   
+   .arrow_function : style {
+      color                = green
+      textmate_scope       = storage.type.function.arrow
+   }
+   
+   .function_call : style {
+      color                = red
+      textmate_scope       = entity.name.function
+   }
+   
+   .brace_round : style {
+      color                = yellow
+      textmate_scope       = meta.brace.round
+   }
+
+   .invalid : style {
+      color                = red
+      textmate_scope       = invalid.illegal.syntax
+   }
+}
+contexts[] {
+   main : context {
+      : include "core" ;
+      : include "comments" ;
+      : pattern {
+         regex    \= \b(if|else|then|return|end|do|for|in)\b
+         styles [] = .language_keyword;
+      }
+      : push {
+         regex    \= (?:($${__IDENTIFIER})(\s*\()?)
+         styles [] = .function_call, .brace_round;
+         context []  = function_call;
+      }
+      : include "block" ;
+      : pattern {
+         regex    \= \b(if|then|elseif|else|end)\b
+         styles [] = .keyword;
+      }
+   }
+   
+   core : context {
+      : pattern {
+         regex    \= \b(not|this|true|false|null|switch|say|stop|in|do|end)\b
+         styles [] = .language_keyword;
+      }
+      : push {
+         regex    \= \b(for\s+)(?:(\$?$${__IDENTIFIER})(\s*,\s*\$?$${__IDENTIFIER})?)
+         styles [] = .language_keyword, .identifier, .identifier;
+         context []  = for_loop;
+      }
+      : pattern {
+         regex    \= \b(var\s+)?(\$?$${__IDENTIFIER})(\s*(?:=|!=|\+=|-=))
+         styles [] = .language_keyword, .identifier, .operator;
+      }
+      : push {
+         regex    \= (function)((?:\s+$${__IDENTIFIER})?)(\s*\()
+         styles [] = .language_keyword, .identifier, .brace_round;
+         context []  = function_call;
+      }
+      : push {
+         regex    \= (?:($${__IDENTIFIER}\.)*($${__IDENTIFIER})(\s*\())
+         styles [] = .identifier, .function_call, .brace_round;
+         context []  = function_call;
+      }
+   }
+   
+   function_call : context {
+      : pop {
+         regex      \= (\)|$)
+         styles []   = .brace_round;
+      }
+      : include "core" ;
+      : include "block" ;
+   }
+   
+   for_loop : context {
+      : pop {
+         regex      \= (do)
+         styles []   = .language_keyword;
+      }
+      : include "core" ;
+      : include "block" ;
+   }
+   
+   object : context {
+      : pop {
+         regex    \= (})
+         styles [] = .operator;
+      }
+   }
+   
+   block : context {
+      : pattern {
+         regex    \= \b(var\s+)?(\$?$${__IDENTIFIER})(\s*=)
+         styles [] = .language_keyword, .identifier, .operator;
+      }
+      : pattern {
+         regex    \= \b(if|then|elseif|else)\b
+         styles [] = .keyword;
+      }
+      : pattern {
+         regex    \= ([+-]?[0-9](?:\.[0-9])?)
+         styles [] = .numeric;
+      }
+      : pattern {
+         regex    \= (=|!=)
+         styles [] = .operator;
+      }
+
+      # Double quote
+      : inline_push {
+         regex          \= (\")
+         styles []       = .string;
+         : pop {
+            regex      \= (?:(")|(.?$))
+            styles []   = .string, .invalid;
+         }
+         : pattern {
+            regex      \= ({{|}})
+            styles [] = .string_escape;
+         }
+         : push {
+            regex      \= (\$\[)
+            styles []   = .string_template_begin;
+            context []  = inline_string;
+         }
+         : pattern {
+            regex      \= (\$)
+            styles [] = .string;
+         }
+         : pattern {
+            regex      \= (\\(?:\\|"))
+            styles [] = .string;
+         }
+         : pattern {
+            regex      \= (\\.)
+            styles [] = .string_escape;
+         }
+         : pattern {
+            regex      \= ([^"\\$]+)
+            styles [] = .string;
+         }
+      }
+      : pattern {
+         regex    \= (\$?$${__IDENTIFIER})
+         styles [] = .identifier;
+      }
+   }
+
+   inline_string : context {
+      : pop {
+         regex      \= ($${__IDENTIFIER})?(])
+         styles []   = .identifier, .string_template_end;
+      }
+      : include "main" ;
+   }
+
+   // Comments
+   comments : context {
+      : push {
+         regex    \= (/\*)
+         styles [] = .comments;
+         context [] = multiline_comment;
+      }
+      : pattern {
+         regex    \= (//.*)
+         styles [] = .comments;
+      }
+   }
+   
+   multiline_comment : context {
+      : pop {
+         regex      \= (\*/)
+         styles []   = .comments;
+      }
+      : pattern {
+         regex    \= ([^\*]|\*)
+         styles [] = .comments;
+      }
+   }
+}

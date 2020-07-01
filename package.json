@@ -1,0 +1,35 @@
+{
+  "name": "vscode-miscript",
+  "description": "MiScript syntax highlighting",
+  "author": "Miki",
+  "license": "MIT",
+  "version": "0.0.1",
+  "publisher": "Miki",
+  "engines": {
+    "vscode": "^1.18.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "miscript",
+        "aliases": [
+          "MiScript"
+        ],
+        "extensions": [
+          ".ms"
+        ],
+        "configuration": "./miscript.configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "miscript",
+        "scopeName": "source.miscript",
+        "path": "./miscript.tmLanguage.xml"
+      }
+    ]
+  }
+}
